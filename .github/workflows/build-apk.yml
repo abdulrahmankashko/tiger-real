@@ -1,0 +1,49 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu indir
+        uses: actions/checkout@v4
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Java kur (Gradle icin gerekli)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Bagimliliklari yukle
+        run: npm install
+
+      - name: Web uygulamasini derle
+        run: npm run build
+
+      - name: Capacitor Android platformunu ekle (yoksa)
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
+      - name: Capacitor'u senkronize et
+        run: npx cap sync android
+
+      - name: Android APK'sini derle (debug)
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug
+
+      - name: APK'yi indirilebilir yap
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiger-erp-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
